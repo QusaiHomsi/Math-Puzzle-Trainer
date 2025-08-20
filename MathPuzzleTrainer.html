@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Math Puzzle Trainer</title>
+  <style>
+    :root{
+      --bg:#0f172a;         /* slate-900 */
+      --panel:#111827;      /* gray-900 */
+      --muted:#94a3b8;      /* slate-400 */
+      --text:#e5e7eb;       /* gray-200 */
+      --accent:#22c55e;     /* green-500 */
+      --accent-2:#38bdf8;   /* sky-400 */
+      --danger:#ef4444;     /* red-500 */
+      --warn:#f59e0b;       /* amber-500 */
+      --card:#0b1223;       /* custom */
+      --input:#0b1223;      
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 20% -10%, #1f2937 0%, rgba(31,41,55,0) 70%),
+                  radial-gradient(1000px 500px at 120% 20%, #0ea5e9 0%, rgba(14,165,233,0) 60%),
+                  var(--bg);
+      color:var(--text);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .app{
+      width: min(960px, 100%);
+      display:grid; gap:16px;
+      grid-template-columns: 1fr;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(148,163,184,.15);
+      border-radius:16px; padding:20px; box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+    }
+    .title{font-weight:700; font-size: clamp(22px, 3vw, 28px); letter-spacing:.3px;}
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+    .grow{flex:1}
+
+    .problem{
+      font-variant-numeric: tabular-nums;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:800; letter-spacing: .5px;
+      font-size: clamp(36px, 8vw, 64px);
+      padding: 12px 8px;
+      min-height: 92px;
+    }
+    .answer-wrap{display:flex; gap:10px; align-items:center; justify-content:center}
+    input[type="text"]{
+      background:var(--input); color:var(--text); border-radius:12px; border:1px solid rgba(148,163,184,.25);
+      padding:14px 16px; font-size:22px; outline:none; width:min(320px, 80vw);
+      transition:.15s border-color, .15s box-shadow;
+    }
+    input[type="text"]:focus{border-color:var(--accent-2); box-shadow:0 0 0 3px rgba(56,189,248,.15)}
+
+    .btn{cursor:pointer; border:1px solid rgba(148,163,184,.25); background: #0b1223; color:var(--text);
+      padding:12px 14px; border-radius:12px; font-weight:600; letter-spacing:.2px; transition:.15s transform, .15s background, .15s border-color}
+    .btn:hover{transform: translateY(-1px); border-color: rgba(148,163,184,.5)}
+    .btn.primary{background:linear-gradient(180deg, #0ea5e9, #0284c7); border-color: transparent}
+    .btn.good{background:linear-gradient(180deg, #22c55e, #16a34a); border-color: transparent}
+    .btn.bad{background:linear-gradient(180deg, #ef4444, #b91c1c); border-color: transparent}
+
+    .chips{display:flex; gap:8px; flex-wrap:wrap}
+    .chip{padding:8px 10px; border-radius:999px; font-size:12px; background:#0b1223; border:1px solid rgba(148,163,184,.25)}
+
+    .grid{display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(240px,1fr));}
+    .stat{display:flex; flex-direction:column; gap:6px; background:var(--card); border:1px solid rgba(148,163,184,.15); padding:14px; border-radius:12px}
+    .stat .big{font-size:28px; font-weight:800; font-variant-numeric: tabular-nums}
+
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .range{accent-color:#38bdf8}
+    label{font-weight:600}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; padding:2px 6px; border:1px solid rgba(148,163,184,.3); border-bottom-width:2px; border-radius:6px; background:#0b1223}
+
+    .op-toggle{display:inline-flex; align-items:center; gap:8px; background:#0b1223; border:1px solid rgba(148,163,184,.35); padding:8px 12px; border-radius:12px; cursor:pointer; user-select:none}
+    .op-toggle input{accent-color:#22c55e}
+
+    .footer{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="card">
+      <div class="row" style="justify-content:space-between; align-items:center">
+        <div class="title">🧮 Math Puzzle Trainer</div>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="problem" id="problem">—</div>
+      <div class="answer-wrap">
+        <input id="answer" type="text" inputmode="decimal" autocomplete="off" placeholder="Type your answer… (press Enter)" />
+        <button class="btn primary" id="checkBtn">Check</button>
+        <button class="btn" id="skipBtn" title="Skip (N)">Skip</button>
+        <button class="btn" id="revealBtn" title="Reveal (R)">Reveal</button>
+      </div>
+      <div class="grid" style="margin-top:16px">
+        <div class="stat"><div class="muted small">Streak</div><div class="big" id="streak">0🔥</div></div>
+        <div class="stat"><div class="muted small">Correct</div><div class="big" id="correct">0</div></div>
+        <div class="stat"><div class="muted small">Wrong</div><div class="big" id="wrong">0</div></div>
+        <div class="stat"><div class="muted small">Accuracy</div><div class="big" id="accuracy">—</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="title" style="font-size:20px">⚙️ Settings</div>
+      <div class="grid">
+        <div>
+          <label>Operations</label>
+          <div class="row" style="margin-top:8px">
+            <label class="op-toggle"><input type="checkbox" id="opAdd" checked> <span>+</span></label>
+            <label class="op-toggle"><input type="checkbox" id="opSub" checked> <span>−</span></label>
+            <label class="op-toggle"><input type="checkbox" id="opMul" checked> <span>×</span></label>
+            <label class="op-toggle"><input type="checkbox" id="opDiv" checked> <span>÷</span></label>
+          </div>
+        </div>
+        <div>
+          <label for="rangeMax">Number range</label>
+          <div class="row" style="margin-top:8px">
+            <input type="number" id="minVal" value="1" min="0" max="100000" class="btn" style="width:110px" title="Minimum" />
+            <span class="muted">to</span>
+            <input type="number" id="maxVal" value="100" min="1" max="100000" class="btn" style="width:110px" title="Maximum" />
+          </div>
+        </div>
+        <div>
+          <label for="decimalChance">Decimal chance (<span id="decimalChanceLbl">15</span>%)</label>
+          <input id="decimalChance" class="range" type="range" min="0" max="100" value="15" />
+          <div class="small muted">When enabled, numbers will sometimes include exactly <b>two decimal places</b> (e.g., 12.34). Lower = fewer decimals.</div>
+        </div>
+        <div>
+          <label>Answer format</label>
+          <div class="small muted" style="margin-top:6px">Integers or decimals with 2 places (we auto-round to 2dp when checking).</div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" id="resetStats">Reset Stats</button>
+            <button class="btn" id="newNow">New Problem (Space)</button>
+          </div>
+        </div>
+      </div>
+      <div class="footer" style="margin-top:10px">
+        <div class="small muted">Shortcuts: <span class="kbd">Enter</span> Check • <span class="kbd">Space</span> New • <span class="kbd">N</span> Skip • <span class="kbd">R</span> Reveal • <span class="kbd">Esc</span> Focus input</div>
+        <div class="small muted">Settings are saved locally.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  ;(() => {
+    const $ = sel => document.querySelector(sel)
+    const chips = $('#chips')
+    const problemEl = $('#problem')
+    const answerEl = $('#answer')
+    const streakEl = $('#streak')
+    const correctEl = $('#correct')
+    const wrongEl = $('#wrong')
+    const accEl = $('#accuracy')
+
+    const opAdd = $('#opAdd')
+    const opSub = $('#opSub')
+    const opMul = $('#opMul')
+    const opDiv = $('#opDiv')
+    const minVal = $('#minVal')
+    const maxVal = $('#maxVal')
+    const decimalChance = $('#decimalChance')
+    const decimalChanceLbl = $('#decimalChanceLbl')
+
+    const checkBtn = $('#checkBtn')
+    const skipBtn = $('#skipBtn')
+    const revealBtn = $('#revealBtn')
+    const resetStatsBtn = $('#resetStats')
+    const newNowBtn = $('#newNow')
+
+    const state = {
+      a: 0,
+      b: 0,
+      op: '+',
+      answer: 0,
+      streak: 0,
+      correct: 0,
+      wrong: 0,
+      total: 0,
+    }
+
+    const save = () => {
+      const data = {
+        ops: [opAdd.checked, opSub.checked, opMul.checked, opDiv.checked],
+        min: +minVal.value || 1,
+        max: +maxVal.value || 100,
+        dec: +decimalChance.value || 0,
+        stats: {streak: state.streak, correct: state.correct, wrong: state.wrong, total: state.total}
+      }
+      localStorage.setItem('mathTrainerV1', JSON.stringify(data))
+    }
+
+    const load = () => {
+      try {
+        const raw = localStorage.getItem('mathTrainerV1')
+        if(!raw) return
+        const data = JSON.parse(raw)
+        const [a,b,c,d] = data.ops || [true,true,true,true]
+        opAdd.checked = a; opSub.checked = b; opMul.checked = c; opDiv.checked = d
+        if(data.min!=null) minVal.value = data.min
+        if(data.max!=null) maxVal.value = data.max
+        if(data.dec!=null) decimalChance.value = data.dec
+        if(data.stats){
+          state.streak = data.stats.streak||0
+          state.correct = data.stats.correct||0
+          state.wrong = data.stats.wrong||0
+          state.total = data.stats.total||0
+          renderStats()
+        }
+      } catch(e){ console.warn('Load failed', e) }
+    }
+
+    const clamp2 = n => Math.round(n * 100) / 100
+
+    function randInt(min, max){
+      return Math.floor(Math.random() * (max - min + 1)) + min
+    }
+
+    function maybeDecimal(n){
+      const pct = +decimalChance.value
+      if (Math.random() * 100 < pct){
+        // produce a number with exactly two decimals
+        const cents = randInt(0,99)
+        return clamp2(n + cents/100)
+      }
+      return n
+    }
+
+    function pickOp(){
+      const ops = []
+      if(opAdd.checked) ops.push('+')
+      if(opSub.checked) ops.push('−')
+      if(opMul.checked) ops.push('×')
+      if(opDiv.checked) ops.push('÷')
+      if(ops.length === 0){ ops.push('+') }
+      return ops[Math.floor(Math.random()*ops.length)]
+    }
+
+    function generate(){
+      const min = Math.min(+minVal.value||1, +maxVal.value||100)
+      const max = Math.max(+minVal.value||1, +maxVal.value||100)
+      const op = pickOp()
+      let a = randInt(min, max)
+      let b = randInt(min, max)
+      a = maybeDecimal(a)
+      b = maybeDecimal(b)
+
+      // Avoid division by zero; ensure nicer division problems
+      if(op==='÷'){
+        if(b === 0) b = 1
+        // Occasionally craft divisible pairs to avoid messy long decimals
+        if(Math.random()<0.5){
+          const q = randInt(min, max)
+          b = randInt(min, max)
+          a = clamp2(q * b)
+        }
+      }
+
+      state.a = a; state.b = b; state.op = op
+      switch(op){
+        case '+':
+          state.answer = clamp2(a + b); break
+        case '−':
+          state.answer = clamp2(a - b); break
+        case '×':
+          state.answer = clamp2(a * b); break
+        case '÷':
+          state.answer = clamp2(a / b); break
+      }
+      renderProblem()
+    }
+
+    function fmt(n){
+      // Display integers without decimals, otherwise 2dp
+      return Number.isInteger(n) ? String(n) : n.toFixed(2)
+    }
+
+    function renderProblem(){
+      const {a,b,op} = state
+      problemEl.textContent = `${fmt(a)} ${op} ${fmt(b)} = ?`
+      answerEl.value = ''
+      answerEl.focus()
+      renderChips()
+    }
+
+    function renderChips(){
+      chips.innerHTML = ''
+      const make = (label) => { const s=document.createElement('span'); s.className='chip'; s.textContent=label; return s }
+      chips.appendChild(make(`Allowed: ${['+','−','×','÷'].filter((o,i)=>[opAdd,opSub,opMul,opDiv][i].checked).join(' ')}`))
+      chips.appendChild(make(`Range: ${minVal.value}–${maxVal.value}`))
+      chips.appendChild(make(`Decimal chance: ${decimalChance.value}%`))
+    }
+
+    function renderStats(){
+      streakEl.textContent = `${state.streak}🔥`
+      correctEl.textContent = state.correct
+      wrongEl.textContent = state.wrong
+      const acc = state.total ? Math.round((state.correct/state.total)*100) : 0
+      accEl.textContent = state.total ? `${acc}%` : '—'
+    }
+
+    function check(){
+      const raw = (answerEl.value||'').trim().replace(/,/g,'')
+      if(!raw){ shake(answerEl); return }
+      const user = Number(raw)
+      if(Number.isNaN(user)){ shake(answerEl); return }
+      const target = state.answer
+      const ok = Math.abs(user - target) <= 0.01 // 2dp tolerance
+      state.total++
+      if(ok){
+        state.correct++; state.streak++; flash(problemEl, 'good');
+        generate()
+      } else {
+        state.wrong++; state.streak = 0; flash(problemEl, 'bad');
+        // keep the same problem so they can try again
+      }
+      renderStats(); save()
+    }
+
+    function reveal(){
+      const ans = fmt(state.answer)
+      problemEl.innerHTML = `${fmt(state.a)} ${state.op} ${fmt(state.b)} = <b style="color:var(--accent)">${ans}</b>`
+    }
+
+    function skip(){ state.streak = 0; renderStats(); generate(); save() }
+
+    function shake(el){
+      el.animate([
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-6px)' },
+        { transform: 'translateX(6px)' },
+        { transform: 'translateX(0)' }
+      ], { duration: 160 })
+    }
+
+    function flash(el, kind){
+      const cls = kind==='good' ? 'good' : 'bad'
+      el.animate([{ filter:'brightness(1)' }, { filter:'brightness(1.5)' }, { filter:'brightness(1)' }], { duration: 220 })
+    }
+
+    // Events
+    checkBtn.addEventListener('click', check)
+    skipBtn.addEventListener('click', skip)
+    revealBtn.addEventListener('click', reveal)
+    resetStatsBtn.addEventListener('click', () => { state.streak=state.correct=state.wrong=state.total=0; renderStats(); save() })
+    newNowBtn.addEventListener('click', () => { generate(); save() })
+
+    ;[opAdd,opSub,opMul,opDiv,minVal,maxVal,decimalChance].forEach(el => {
+      el.addEventListener('change', () => { decimalChanceLbl.textContent = decimalChance.value; save(); renderChips() })
+      el.addEventListener('input', () => { decimalChanceLbl.textContent = decimalChance.value; renderChips() })
+    })
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){ e.preventDefault(); check(); }
+      else if(e.code === 'Space'){ e.preventDefault(); generate(); save() }
+      else if(e.key.toLowerCase() === 'n'){ e.preventDefault(); skip() }
+      else if(e.key.toLowerCase() === 'r'){ e.preventDefault(); reveal() }
+      else if(e.key === 'Escape'){ answerEl.focus() }
+    })
+
+    // Init
+    load()
+    decimalChanceLbl.textContent = decimalChance.value
+    renderChips()
+    renderStats()
+    generate()
+  })()
+  </script>
+</body>
+</html>
